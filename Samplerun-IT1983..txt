@@ -1,0 +1,13 @@
+# 4 space tabs
+# Transcription of the table in Byte showing example data
+Party					Votes	Proportion	BI		BIRestr
+Christian Democrats		255		.357		.324	.223
+Communist				198		.314		.224	.154
+Socialist				73		.116		.224	.270
+Italian Social Movement	48		.067		.074	.102
+Republican				29		.046		.055	.078
+Democratic Socialist	23		.037		.044	.061
+Liberal					16 		.025		.035	.049
+Radical					11		.017		.020	.028
+Proletarian Democrats	7		.011		.014	.019
+Small regional parties	6		.010		.012	.016 
