@@ -2,7 +2,7 @@ BANZDEMO
 ========
 
 Enhanced port to DLang of the Apple Pascal Banzhaf Index calculator
-from the March 1983 issue of Byte Magazine. Mostly intended as a
+from the March 1984 issue of Byte Magazine. Mostly intended as a
 learning project for D.
 
 Original project specified it's runtime options conversationally from
@@ -16,7 +16,7 @@ Since I am retargeting to a POSIX system, the input now always comes
 from stdin, the output goes to stdout, and any status output goes to
 stderr.  There is no UI for entry at the keyboard, and it takes 3
 input file formats: the original(bytemag), tab delimited (tab), ~~and
-CSV~~. Options are specified with command line switches and not
+CSV(csv)~~. Options are specified with command line switches and not
 conversationally. No printing, people don't print much anymore and
 that is what lpr(1) is for. I'm also using the D double precision floats, as opposed to the tiny non-standard Apple floats.
 
@@ -144,9 +144,10 @@ Current Issues
 	- Possibly a `--inskip=NUMLINES`
 - Look for some way to do D I/O without the GC or exceptions.
 - The Pascal source file has many, many OCR errors.
+- Put the data in the global sapce instead of the thread local space and benchmark?
 
 - DONE Currently depends on a private library for a lame sort algo. Should remove dependency.
-	- ceres.sorting
+	- ceres.sorting needs reworking anyways
 	- Went back to the weird sort from the original. Not efficient, but at most only a few thousand Parties in any real worls scanario.
 
 

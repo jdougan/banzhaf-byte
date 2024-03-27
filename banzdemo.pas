@@ -358,7 +358,7 @@ procedure banzprint;
 		str(totpivots,sta);
 		print ( concat (' Total Pivots= ', sta));
 		print(' ');
-		totvot: =O;for ka:=1 to np do totvot :=totvot+votes(ka];
+		totvot := O; for ka:=1 to np do totvot := totvot + votes(ka];
 		sty:='NAME VOTES PROP VT BANZHAF DIFF RATIO NAME';
 		print(sty);
 		printres();
