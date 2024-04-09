@@ -3,11 +3,13 @@
 #
 #
 #
+PROGRAMS = banzdemo
+TESTOUTPUT = 
 
 # will want to change this on a standard D system
 DCC=gdmd
 
-all: test testca
+all: test testca $(PROGRAMS) $(TESTOUTPUT) 
 	# echo Default actions, build all the tests.
 
 banzdemo: banzdemo.d 
@@ -26,3 +28,5 @@ testca: banzdemo Votes-IT.banzbyte
 clean:
 	rm -rf *.o banzdemo Votes-IT-out*.txt Votes-IT-out*.tab Votes-CA-out*.txt Votes-CA-out*.tab
 
+allclean: clean
+	echo 

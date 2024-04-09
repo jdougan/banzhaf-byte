@@ -1,3 +1,10 @@
+banzdemo
+*.sublime-workspace
+*.sublime-project
+*.map
+*.out
+core*
+
 # Compiled Object files
 *.o
 *.obj
