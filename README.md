@@ -150,9 +150,22 @@ Current Issues
 	- ceres.sorting needs reworking anyways
 	- Went back to the weird sort from the original. Not efficient, but at most only a few thousand Parties in any real worls scanario.
 
+Compiler Version
+-----------------
+From std.compiler:
+```
+Compiler-Name: GNU D
+Vendor: gnu
+Vendor-Version: 2.76
+D-Version: 2
+```
 
-
-
-
+from gdc --version
+```
+gdc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0 
+Copyright (C) 2021 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+```
 
 

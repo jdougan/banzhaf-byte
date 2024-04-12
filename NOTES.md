@@ -25,3 +25,7 @@ different run.
 - error handling for getopt
 - 
 
+Compiler-Name: GNU D
+Vendor: gnu
+Vendor-Version: 2.76
+D-Version: 2
