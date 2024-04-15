@@ -1,4 +1,6 @@
 banzdemo
+testoutput
+
 *.sublime-workspace
 *.sublime-project
 *.map

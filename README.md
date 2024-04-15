@@ -18,7 +18,8 @@ stderr.  There is no UI for entry at the keyboard, and it takes 3
 input file formats: the original(bytemag), tab delimited (tab), ~~and
 CSV(csv)~~. Options are specified with command line switches and not
 conversationally. No printing, people don't print much anymore and
-that is what lpr(1) is for. I'm also using the D double precision floats, as opposed to the tiny non-standard Apple floats.
+that is what lpr(1) is for. I'm also using the D double precision
+floats, as opposed to the tiny non-standard Apple floats.
 
 
 Options
