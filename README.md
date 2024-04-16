@@ -19,7 +19,7 @@ input file formats: the original(bytemag), tab delimited (tab), ~~and
 CSV(csv)~~. Options are specified with command line switches and not
 conversationally. No printing, people don't print much anymore and
 that is what lpr(1) is for. I'm also using the D double precision
-floats, as opposed to the tiny non-standard Apple floats.
+(IEEE 754) floats, as opposed to the tiny non-standard Apple floats.
 
 
 Options
@@ -127,12 +127,7 @@ Current Issues
 - Was built using the gcc dlang compiler, gdc. There may be some gdc-isms I am unaware of.
 - Similarly, the Makefile is dependent on gdmd to invoke compilation.
 	- Should make it easy to use dmd on systems with that.
-- Calculations on Italian votes don't match sample data in original article.
-  	- To be fair, I'm not sure they were supposed to. It might have been montecarlo processed.
-  	- It also doesn't match other sources.
-  	- Try different values for mwc: 333,334,??? and see if it matches other outputs better?
-  	- Go over processing code again, maybe I missed something.
-  	- The original used the standard Apple floats, which were ver low precision and slow and prone to rounding errors.
+  	- The original used the standard Apple floats, which were very low precision and slow and prone to rounding errors.
 - CSV input not yet done.
 	- Maybe drop CSV input and rely on other tools (awk) to convert to tab delimited?
 	- Or not. It gives me a chance to mess with std.csv.
@@ -145,11 +140,20 @@ Current Issues
 	- Possibly a `--inskip=NUMLINES`
 - Look for some way to do D I/O without the GC or exceptions.
 - The Pascal source file has many, many OCR errors.
-- Put the data in the global sapce instead of the thread local space and benchmark?
+	- Find an Apple Pascal compatible compiler and make it work.
+- Put the data in the global space instead of the thread local space and benchmark?
+- Float output formatting needs to be more fully specified, or there is a decent chance the tests will incorrectly fail.
+- Need doc on updating test cases if they fail due to reformatting.
 
 - DONE Currently depends on a private library for a lame sort algo. Should remove dependency.
 	- ceres.sorting needs reworking anyways
 	- Went back to the weird sort from the original. Not efficient, but at most only a few thousand Parties in any real worls scanario.
+- DONE Calculations on Italian votes don't match sample data in original article.
+	- Checked against textbook examples, and program is correct.
+  	- To be fair, I'm not sure they were supposed to. It might have been monte carlo processed.
+  	- It also doesn't match other sources.
+  	- Try different values for mwc: 333,334,??? and see if it matches other outputs better?
+  	- Go over processing code again, maybe I missed something.
 
 Compiler Version
 -----------------
