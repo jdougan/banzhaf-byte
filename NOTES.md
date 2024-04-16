@@ -32,7 +32,7 @@ intended as a learning project for D.
 	- Maybe pack it.
 		- it should keep the size in many cases under a cacheline.
 		- with a ressonable set of packing/upacking instructions it should be pipeline compatible.
-	- D has a BitArray, try that first
+	- D has a BitArray, try that first.
 
 Compiler-Name: GNU D
 Vendor: gnu
