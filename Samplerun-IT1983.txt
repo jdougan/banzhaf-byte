@@ -1,5 +1,6 @@
 # 4 space tabs
 # Transcription of the table in Byte showing example data
+# Note, calculations appear incorrect.
 Party					Votes	Proportion	BI		BIRestr
 Christian Democrats		255		.357		.324	.223
 Communist				198		.314		.224	.154

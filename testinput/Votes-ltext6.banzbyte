@@ -1,0 +1,11 @@
+Votes Data Math in Society example.
+https://math.libretexts.org/Bookshelves/Applied_Mathematics/Math_in_Society_(Lippman)/03%3A_Weighted_Voting/3.04%3A_Calculating_Power-__Banzhaf_Power_Index
+Revisiting the Scottish Parliament, with voting system  [65:47,46,17,16,2]
+Example 6   [65:47,46,17,16,2]
+./banzdemo --mwc=65 --header=all < Votes-ltext6.banzbyte  > Banz-ltext6-mwc65.tab
+
+Scottish National Party:47
+Labour Party:46
+Conservative Party:17
+Liberal Democratic Party:16
+Scottish Green Party:2

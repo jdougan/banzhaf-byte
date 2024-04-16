@@ -1,0 +1,9 @@
+Votes Data Math in Society example.
+https://math.libretexts.org/Bookshelves/Applied_Mathematics/Math_in_Society_(Lippman)/03%3A_Weighted_Voting/3.04%3A_Calculating_Power-__Banzhaf_Power_Index
+example 5
+MWC is 8
+./banzdemo --mwc=8 --header=all < Votes-ltext1.banzbyte  > Banz-ltext4-mwc8.tab
+
+A:6
+B:3
+C:2
