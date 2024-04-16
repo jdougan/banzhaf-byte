@@ -13,9 +13,13 @@ intended as a learning project for D.
 	- https://gist.github.com/HeinrichHartmann/8ec2e2245f2a70441257
 	- https://math.libretexts.org/Bookshelves/Applied_Mathematics/Math_in_Society_(Lippman)/03%3A_Weighted_Voting/3.04%3A_Calculating_Power-__Banzhaf_Power_Index
 		- Using these textbook examples, we are getting correct answers.
+	- Try different values for mwc: 333,334,??? fr IT data and see if it matches
 
+- This will take too long on exhaustive
+	- ./banzdemo --mwc=270 --header=all  < testinput US-Electoral-College-2024.tsv > Banz-USEC2024-mwc270.tab
+- AWK Language
+	- https://www.ibm.com/docs/en/aix/7.2?topic=awk-command
 
-- Try different values for mwc: 333,334,??? and see if it matched others output better
 - XXX do easy options: headerX, mwcX, ???
 
 - Montecarlo not done yet
@@ -28,7 +32,7 @@ intended as a learning project for D.
 	- Maybe pack it.
 		- it should keep the size in many cases under a cacheline.
 		- with a ressonable set of packing/upacking instructions it should be pipeline compatible.
-	- D has a BitArray
+	- D has a BitArray, try that first
 
 Compiler-Name: GNU D
 Vendor: gnu
