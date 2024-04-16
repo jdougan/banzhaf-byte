@@ -1,6 +1,6 @@
-Votes Data Math in Society example.
+Math in Society textbook example 5.
 https://math.libretexts.org/Bookshelves/Applied_Mathematics/Math_in_Society_(Lippman)/03%3A_Weighted_Voting/3.04%3A_Calculating_Power-__Banzhaf_Power_Index
-Example 5
+Example 5 [16: 7, 6, 3, 3 2]
 MWC is 16
 ./banzdemo --mwc=16 --header=all < Votes-ltext5.banzbyte  > Banz-ltext5-mwc16.tab
 

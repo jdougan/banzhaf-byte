@@ -1,9 +1,10 @@
-Votes Data Math in Society example.
+Math in Society text book example 7.
 https://math.libretexts.org/Bookshelves/Applied_Mathematics/Math_in_Society_(Lippman)/03%3A_Weighted_Voting/3.04%3A_Calculating_Power-__Banzhaf_Power_Index
 Banzhaf used this index to argue that the weighted voting system used in the Nassau County Board of Supervisors
 in New York was unfair. The county was divided up into 6 districts, each getting voting weight proportional
 to the population in the district, as shown below. Calculate the power index for each district.
 Example 7  [58:31,31,28,21,2,2]
+MWC is 58
 ./banzdemo --mwc=58 --header=all < Votes-ltext7.banzbyte  > Banz-ltext7-mwc65.tab
 
 Hempstead #1:31
