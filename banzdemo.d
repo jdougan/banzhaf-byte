@@ -26,28 +26,46 @@ enum MAXVOTES = 200 + 1;
 // This stsrts from 0 to MAXIDLINES - 1.
 enum MAXIDLINES = 50 ; 
 
+alias FloatT = double;
 
-string[MAXVOTES] PartyNames;
 int[MAXVOTES] Votes;
 int[MAXVOTES] NumPivots;
+string[MAXVOTES] PartyNames;
 string[MAXIDLINES] IdHeader;
-// CoalitionMember is treated as a MAX votes + 1 integer
-// a true bit means the coresponding party in in the coalition
-// the extra ib ia the carry bit, if it is true you are past the valid range
+/++
+CoalitionMember is treated as an unsigned integer with a width of
+(NumParties + 1) bits, a true bit means the coresponding party is in
+the coalition.  The extra bit ia the carry bit, if it is true you are
+past the valid range. In theory, it might be faser to pack it into
+bits instead of the byte default to reduce cache pressure..
++/
 bool[MAXVOTES+1] CoalitionMember;
-double[MAXVOTES] BanzIndex;
+FloatT[MAXVOTES] BanzIndex;
 
-// number of coalitions evaluated;
-// total pivots, 
-// number of header lines,
-// number of parties,
-// votes required for mwc
-int  ncex , totpivots , nid, np , mwcvote ;
+/// number of coalitions evaluated, not used at present.
+int ncex;
+/// total pivots, 
+int totpivots;
+/// number of header lines,
+int nid;
+/// Number of Parties,
+int np;
+/// Cache of Number of Parties + 1
+int npp1 ;
+/// votes required for mwc (Minimum Winning Coalition)
+int mwcvote ;
 
-// Assorted counters, some of these should be moved into thw corresponding functions.
 // total votes = sum(Votes)
-// number 
-int  totvot, nex , kz, ka, kb , npp1 ;
+// was sum of positive votes in a colition
+// var moved to inside countpivots()
+// int totvot;
+
+/// Sum of all Votes, calc after read.
+int nex ;
+
+// Assorted  counters, might be removeable.
+// int kz, ka, kb;
+
 
 // ============================================================
 // flags to be set from command line
@@ -275,6 +293,7 @@ enum StaticVerbosity = 0;
 	// same time complexity.
 	int tmpi; 
 	string tmps;
+	int ka, kb;
 
 	for(ka = 1; ka <= (np - 1); ka++) {
 		for(kb = ka; kb <= np ; kb++) {
@@ -346,19 +365,28 @@ enum StaticVerbosity = 0;
 
 
 
-@nogc nothrow @safe void exhaust() {
+void exhaust()  @nogc nothrow @safe
+{
 	// Taken from the original Pascal program, this is essentially
 	// counting up with the binary number represented by the bit array
 	// CoalitionMember. You could probably do it with an array of
 	// unsigned, at some complexity cost. CoalitionMember[np+1] is
 	// the "carry" bit and it being set is the sign that you have
 	// reached the end.
+
+	//void dump(){
+	//	import std.stdio;
+	//	writeln(CoalitionMember[1..npp1 + 2]);
+	//}
+
+	int ka;
 	ncex = 0;
 	for (ka = 1; ka <= npp1; ka ++) {
 		CoalitionMember[ka] = false;
 	}
 	do {
 		ncex++;
+		//dump();
 		allcoal();
 		countpivots();
 	} while (!(CoalitionMember[npp1]));
@@ -386,9 +414,10 @@ enum StaticVerbosity = 0;
 	//var totvot , ka:integer;
 	//begin
 	//	totvot:=O;
-	//	for ka := 1 to np do if mem[ka] then totvot := totvot+votes[ka];
+	//	for ka := 1 to np do
+	//		if mem[ka] then totvot := totvot+votes[ka];
 	//	if totvot >= mwcvote then begin
-	//		for ka: =1 to np do
+	//		for ka :=1 to np do
 	//			if mem[ka] then
 	//				if (totvot - votes[ka]) < mwcvote then
 	//					numpivots[ka]:= numpivots[ka]+1
@@ -396,23 +425,34 @@ enum StaticVerbosity = 0;
 	//					ka := np; (*note: this shortcut assumes sorted votes...*)
 	//	end;
 	//end;
-	// FIXME not ocmplete yet
-	int totalVote, ka ;
+
+	/// Total votes th the current coalition
+	int totalVote ;
+
+	int ka ;
 	totalVote = 0;
-	for (ka = 1; ka <= np; ka++ )  {
+	for(ka = 1; ka <= np; ka++ )  {
 		if (CoalitionMember[ka]) {
 			totalVote = totalVote + Votes[ka];
 		}
 	}
-	if (totalVote >= mwcvote) {
-		for (ka = 1; ka <= np; ka ++) {
+	if(totalVote >= mwcvote) {
+		for(ka = 1; ka <= np; ka ++) {
 			if(CoalitionMember[ka]) {
-				if ((totalVote - Votes[ka]) < mwcvote) {
+				if((totalVote - Votes[ka]) < mwcvote) {
 					NumPivots[ka]++;
 				} else {
-					// with this trick work in D?
-					/// allegedly this magic only works if sorted, not sure why
-					ka = np;
+					/+ 
+					We skip to the next coalition when the number of
+					party votes gets small enough that changing
+					their votes soesn't matter.  Since sorted
+					descending, all the later ones are smaller, so
+					are in the same position.  Done like this
+					probably because Pascal has neither return or break.
+					+/
+					// test, if not skipping gives the same vales
+					// ka = np;
+					return;
 				}
 			}
 		}
@@ -430,7 +470,7 @@ enum StaticVerbosity = 0;
 		return EXIT_NOPIVOTS;
 	}
 	for (ka = 1; ka <= np; ka ++) {
-		BanzIndex[ka] = (cast(double)NumPivots[ka]) / (cast(double)totpivots);
+		BanzIndex[ka] = (cast(FloatT)NumPivots[ka]) / (cast(FloatT)totpivots);
 	}
 	return EXIT_NOERROR;
 }
@@ -443,6 +483,8 @@ enum StaticVerbosity = 0;
 @trusted void banzprint() {
 	import std.stdio;
 	import std.conv;
+
+	int ka, kb;
 
 	if (shouldOutputHeader == OutputHeaderGenerated.all) {
 		debugPrint!(1, "Header line count: \t", true)(to!string(nid));
@@ -462,14 +504,20 @@ enum StaticVerbosity = 0;
 		writeln("NumPivots\tBanzIndex\tBI-VP\tBI/VP");
 	}
 	for (ka = 1; ka <= np; ka ++) {
-		double voteProp = (Votes[ka] / cast(double)nex);
+		FloatT voteProp = (Votes[ka] / cast(FloatT)nex);
 		write(PartyNames[ka], "\t", Votes[ka], "\t", voteProp, "\t");
 		write( NumPivots[ka], "\t", BanzIndex[ka], "\t", (BanzIndex[ka] - voteProp), "\t", (BanzIndex[ka] / voteProp),"\n");
 	}
 }
 
+@trusted void dumpTechData() {
+	import std.stdio : writeln , stderr ;
+	stderr.writeln("", typeof(CoalitionMember).sizeof);
+}
+
 
 @safe int main(string[] args) {
+	//dumpTechData();
 	int err = 0;
 	err = setFromCommandFlags(args);
 	if (err != EXIT_NOERROR) {
@@ -491,6 +539,9 @@ enum StaticVerbosity = 0;
 	}
 	err = banzcomp();
 	if (err != EXIT_NOERROR) {
+		if (err == EXIT_NOPIVOTS) {
+			// writeln("NOPIVOTS: No pivots found in data.");
+		}
 		return err;
 	}
 	banzprint();
