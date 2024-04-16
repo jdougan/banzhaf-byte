@@ -252,13 +252,15 @@ procedure countpivot;
 	var totvot , ka:integer;
 	begin
 		totvot:=O;
-		for ka := 1 to np do if mem[ka ] then totvot := totvot+votes[ka];
+		for ka := 1 to np do
+			if mem[ka ] then
+				totvot := totvot+votes[ka];
 		if totvot >= mwcvote then
 		begin
 			for ka: =1 to np do
 				if mem[ka ] then
-					if (totvot - votes[ka ]) < mwcvote then
-						numpivots[ka ]:=numpivots[ka]+1
+					if (totvot - votes[ka]) < mwcvote then
+						numpivots[ka] := numpivots[ka] + 1
 					else
 						ka := np (*note: this shortcut assumes sorted votes...*)
 		end;
