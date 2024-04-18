@@ -205,7 +205,7 @@ procedure readdata;
 					if votestka]<O then begin
 						kas=ka-2;
 						writeln ('Sackspace -- next entry will replace');
-						writeln(' ',nametka ],' : ', votestka]);
+						writeln(' ',name[ka ],' : ', votes[ka]);
 					end;
 				end;
 			until (length(sta)=O) or (ka-maxvot);
@@ -271,7 +271,8 @@ procedure exhaust;
 	var ka:integer;
 	begin 
 		ncex:=O;
-		for ka := 1 to npp1 do mem[ka] := false;
+		for ka := 1 to npp1 do
+			mem[ka] := false;
 		repeat 
 			ncex := ncex + l;
 			allcoal();
@@ -287,7 +288,7 @@ procedure randcomp;
 	begin
 		write (' Enter number of random coalitions to generate:');
 		readln(sta);
-		next=iconv(sta);
+		nex := iconv(sta);
 		writeln (' A "." is printed for each 20 coalitions');
 		for ka: = 1 to nex do begin
 			randcoal;
@@ -297,7 +298,7 @@ procedure randcomp;
 				if (ka mod 500 )=O then
 					writeln (' Total coalitions:', ka);
 			end;
-			ncex:=nex;
+			ncex := nex;
 		end;
 	end;
 
