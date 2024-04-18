@@ -22,7 +22,9 @@ intended as a learning project for D.
 
 - XXX do easy options: headerX, mwcX, ???
 
-- Montecarlo not done yet
+- Montecarlo not done yet INPROGRESS
+	- WTF is Phobos doing with std.random.uniform() being @gc!?
+	- 
 - csv input not done yet
 - think about other output formats, like CSV
 - Proportional mwc calc needs revision and command line switches.
@@ -31,8 +33,10 @@ intended as a learning project for D.
 	- https://www.cppstories.com/2017/04/packing-bools/
 	- Maybe pack it.
 		- it should keep the size in many cases under a cacheline.
-		- with a ressonable set of packing/upacking instructions it should be pipeline compatible.
+		- with a ressonable set of packing/upacking instructions it should be cache compatible.
 	- D has a BitArray, try that first.
+- I badly want an assert that lets me specify a POSIX exit code on failure.
+	- exitassert(totalVotes < 1, "TotalVotes < 1", EXIT_BADDATA);
 
 Compiler-Name: GNU D
 Vendor: gnu

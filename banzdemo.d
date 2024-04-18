@@ -6,6 +6,8 @@
 */
 @safe
 
+import std.random : unpredictableSeed ;
+
 // ============================================================
 // Consts and Vars
 
@@ -28,8 +30,14 @@ enum MAXIDLINES = 50 ;
 
 alias FloatT = double;
 
-int[MAXVOTES] Votes;
-int[MAXVOTES] NumPivots;
+/// Pseudo Random Generator config
+/// uint is always 32 bits
+alias PrngOutputType = uint  ;
+
+PrngOutputType seed = 0;
+
+int[MAXVOTES] Votes = 0;;
+int[MAXVOTES] NumPivots = 0;
 string[MAXVOTES] PartyNames;
 string[MAXIDLINES] IdHeader;
 /++
@@ -39,29 +47,34 @@ the coalition.  The extra bit ia the carry bit, if it is true you are
 past the valid range. In theory, it might be faser to pack it into
 bits instead of the byte default to reduce cache pressure..
 +/
-bool[MAXVOTES+1] CoalitionMember;
-FloatT[MAXVOTES] BanzIndex;
+bool[MAXVOTES+1] CoalitionMember = false;
+FloatT[MAXVOTES] BanzIndex = 0.0;
 
-/// number of coalitions evaluated, not used at present.
+/// number of coalitions evaluated, running number of experiments
+/// Used for status output, when I readd it.
 int ncex;
+
 /// total pivots, 
 int totpivots;
+
 /// number of header lines,
 int nid;
+
 /// Number of Parties,
 int np;
+
 /// Cache of Number of Parties + 1
 int npp1 ;
+
 /// votes required for mwc (Minimum Winning Coalition)
 int mwcvote ;
 
-// total votes = sum(Votes)
-// was sum of positive votes in a colition
-// var moved to inside countpivots()
-// int totvot;
+/// total votes = sum(Votes)
+int totalVotes;
 
-/// Sum of all Votes, calc after read.
-int nex ;
+/// Number of Experiments: number of Monte Carlo runs..
+/// 2 ** 20
+int nex =1_048_576;
 
 // Assorted  counters, might be removeable.
 // int kz, ka, kb;
@@ -91,12 +104,11 @@ bool expectInputColumnHeader;
 uint mwcProportionNumerator = 0;
 uint mwcProportionDenominator = 0;
 
-
 enum ProcessingType {
 	montecarlo,
 	all
 }
-ProcessingType shouldProcessExhaustively ;
+ProcessingType howToProcess ;
 
 enum OutputHeaderGenerated {
 	none,
@@ -123,6 +135,105 @@ enum StaticVerbosity = 0;
 	}
 }
 
+
+/++
+A port of the c-mersennetwister.c rng at
+https://github.com/bmurray7/mersenne-twister-examples/ . I've wrapped
+its state in a struct and moved all the support into the struct as
+well.
++/
+struct MersenneTwisterGeneratorU32 {
+	// #include <stdint.h>
+	alias uint32_t = uint;
+	alias uint16_t = ushort;
+
+	/// Define MT19937 constants (32-bit RNG)
+	enum
+	{
+	    // Assumes W = 32 (omitting this)
+	    N = 624,
+	    M = 397,
+	    R = 31,
+	    A = 0x9908B0DF,
+
+	    F = 1812433253,
+
+	    U = 11,
+	    // Assumes D = 0xFFFFFFFF (omitting this)
+
+	    S = 7,
+	    B = 0x9D2C5680,
+
+	    T = 15,
+	    C = 0xEFC60000,
+
+	    L = 18,
+
+	    MASK_LOWER = (1UL << R) - 1,
+	    MASK_UPPER = (1UL << R)
+	};
+
+	///
+	uint32_t[N] mt;
+
+	///
+	uint16_t index;
+
+	/// Re-init with a given seed
+	void initialize(const uint32_t  seed) @nogc nothrow @safe
+	{
+	    uint32_t  i;
+	    mt[0] = seed;
+	    for ( i = 1; i < N; i++ )
+	    {
+	        mt[i] = (F * (mt[i - 1] ^ (mt[i - 1] >> 30)) + i);
+	    }
+	    index = N;
+	}
+
+	/// Interal function to mix the data.
+	void twist() @nogc nothrow @safe
+	{
+	    uint32_t  i, x, xA;
+	    for ( i = 0; i < N; i++ )
+	    {
+	        x = (mt[i] & MASK_UPPER) + (mt[(i + 1) % N] & MASK_LOWER);
+	        xA = x >> 1;
+	        if ( x & 0x1 )
+	            xA ^= A;
+	        mt[i] = mt[(i + M) % N] ^ xA;
+	    }
+	    index = 0;
+	}
+
+	/// Obtain a 32-bit random number
+	uint32_t extractU32() @nogc nothrow @safe
+	{
+	    uint32_t  y;
+	    int       i = index;
+	    if ( index >= N )
+	    {
+	        twist();
+	        i = index;
+	    }
+	    y = mt[i];
+	    index = cast(uint16_t)(i + 1);
+	    y ^= (y >> U);
+	    y ^= (y << S) & B;
+	    y ^= (y << T) & C;
+	    y ^= (y >> L);
+	    return y;
+	}
+
+
+}
+
+PrngOutputType randomGen() @nogc nothrow @safe {
+	return monteCarloGen.extractU32();
+}
+
+MersenneTwisterGeneratorU32 monteCarloGen;
+
 // ============================================================
 //  Procedures
 // 
@@ -135,14 +246,16 @@ enum StaticVerbosity = 0;
 	// --mwc=567
 	// --informat=bytemag --informat=tab --informat=csv
 	// --header==all --header=none --header=column
+	// --nex=1224 - Number of expoerments run. if monto caro this is a request.
 
 	// --mecp=1/5
 	// --seed=653567864543
 	// --mwcfrac=1/2 
 
 	mwcvote = 0;
+	// nex = 1_048_576;
 	shouldOutputHeader = OutputHeaderGenerated.all;
-	shouldProcessExhaustively = ProcessingType.all;
+	howToProcess = ProcessingType.all;
 	inputFormatExpected = InputFormat.bytemag;
 	// FIXME would it make sense to optionally use a percentage for mwc?
 	// should default to 1/2
@@ -154,19 +267,41 @@ enum StaticVerbosity = 0;
 		"mwc" , &mwcvote,
 		"header", &shouldOutputHeader,
 		"informat", &inputFormatExpected,
-		"process", &shouldProcessExhaustively,
+		"process", &howToProcess,
+		"nex", &nex,
+		"seed", &seed,
 		);
 
 	return EXIT_NOERROR;
 }
 
+/++
+Early  initialization. Can throw and be @gc.
++/
+void init() @safe {
+	// Might make sense to move all this to massage()?
+	ncex = 0;
+	final switch (howToProcess) {
+		case ProcessingType.all:
+			break;
 
-@nogc nothrow @safe void init() {
-	for(int ka = 1; ka < MAXVOTES; ka ++ ) {
-		NumPivots[ka] = 0;
+		case ProcessingType.montecarlo:
+			if (seed == 0) {
+				// FIXME need to find non Phobos seeding source 
+				monteCarloGen.initialize(unpredictableSeed());
+			} else {
+				monteCarloGen.initialize(seed);
+			}
+			break;
 	}
 }
 
+
+/++
+Read the data from stdin. Changes process based in --informat swittch
+expressed in the inputFormatExpected var. Error handling on bad
+format is either Exit Code, or  crash with an assertion failure.
++/
 @safe int readdata() {
 
 	@trusted int readbytedata() {
@@ -184,7 +319,7 @@ enum StaticVerbosity = 0;
 		//
 		nid = 0;
 		bool scanningHeader = true;
-		debugPrint!(1,"Start of Header Parse",true)("");
+		debugPrint!(2,"Start of Header Parse",true)("");
 		while (scanningHeader) {
 			string rawLine = readln();
 			size_t len = rawLine.length;
@@ -199,11 +334,11 @@ enum StaticVerbosity = 0;
 					return (EXIT_BADFORMATHEADER);
 				}
 				IdHeader[nid] = rawLine[0..$-1];
-				debugPrint!(1,"==>",true)(IdHeader[nid]);
+				debugPrint!(2,"==>",true)(IdHeader[nid]);
 				nid = nid + 1;
 			}
 		}
-		debugPrint!(1,"End of Header Parse",true)("");
+		debugPrint!(2,"End of Header Parse",true)("");
 
 		np = 0 ;
 		bool scanningBody = true;
@@ -215,7 +350,7 @@ enum StaticVerbosity = 0;
 				scanningBody = false;
 			} else {
 				// should check for overflow here
-				debugPrint!(1,"==>", false)(rawLine);
+				debugPrint!(2,"==>", false)(rawLine);
 				size_t sepIndex = rawLine.indexOf(':');
 				if (sepIndex == -1) {
 					// No seperator, line oif ill formed.
@@ -231,7 +366,7 @@ enum StaticVerbosity = 0;
 				np = np + 1;
 			}
 		}
-		debugPrint!(1,"End of Body Parse, count ",true)(to!string(np));
+		debugPrint!(2,"End of Body Parse, count ",true)(to!string(np));
 		return EXIT_NOERROR;
 	}
 
@@ -272,7 +407,6 @@ enum StaticVerbosity = 0;
 		return EXIT_NOERROR;
 	}
 
-	
 	final switch(inputFormatExpected) {
 		case InputFormat.bytemag:
 			return readbytedata();
@@ -286,11 +420,13 @@ enum StaticVerbosity = 0;
 	}
 }
 
-
+/**
+Copy of the sort from the Pascal original. Claimed to be a bubblesort.
+Not really a bubblesort though I think it has the same time
+complexity.
+*/
 @nogc nothrow @safe int sortdata_orig() {
-	// Copy of the sort from the Pascal original. Claimed to be a
-	// bubblesort. Not really a bubblesort though I think it has the
-	// same time complexity.
+
 	int tmpi; 
 	string tmps;
 	int ka, kb;
@@ -316,8 +452,8 @@ enum StaticVerbosity = 0;
 // =================================================================
 // Sorting
 // used in th swap function. in global for improved locality.
-//string tmps;
-//int tmpi;
+// string tmps;
+// int tmpi;
 
 //@safe @nogc void myswap(int ka, int kb) nothrow {
 //	// could replace with system swap? FIXME check.
@@ -343,73 +479,38 @@ enum StaticVerbosity = 0;
 
 //====================================================================
 
-@nogc nothrow @safe void massage(){
-	nex = 0;
+/++
+Calculates values from the read data that need only be done
+once.
++/
+void massage() @nogc nothrow @safe {
+	// No longer needed, initialization are now on the declaration.
+	// for(int ka = 1; ka < MAXVOTES; ka ++ ) { NumPivots[ka] = 0; }
+	totalVotes = 0;
 	for(int ka = 1; ka <= np; ka++){
-		nex = nex + Votes[ka];
+		totalVotes = totalVotes + Votes[ka];
 	}
+	assert(totalVotes > 0, "massage(): totalVotes not > 0, probably bad data.");
 	npp1 = np + 1;
 	if (mwcvote == 0) {
-		// if it is zero, then it needs to be calculated from porportions.
+		// if it is zero, then it needs to be calculated from
+		// proportions.
 		// in not zero, we assume it is good.
-		// Probably should be cecked to endure that it if in [1,np]
+		// Probably should be checked to ensure that it is in [1,np]
 		assert(mwcProportionNumerator > 0);
 		assert(mwcProportionDenominator > 0);
-		uint votesToPass = (nex * mwcProportionNumerator) / mwcProportionDenominator;
-		uint remainderToPass = (nex * mwcProportionNumerator) % mwcProportionDenominator;
+		uint votesToPass = (totalVotes * mwcProportionNumerator) / mwcProportionDenominator;
+		uint remainderToPass = (totalVotes * mwcProportionNumerator) % mwcProportionDenominator;
 		// FIXME probably not right
 		mwcvote = votesToPass + 1;
 	}
 	sortdata_orig();
 }
 
-
-
-void exhaust()  @nogc nothrow @safe
-{
-	// Taken from the original Pascal program, this is essentially
-	// counting up with the binary number represented by the bit array
-	// CoalitionMember. You could probably do it with an array of
-	// unsigned, at some complexity cost. CoalitionMember[np+1] is
-	// the "carry" bit and it being set is the sign that you have
-	// reached the end.
-
-	//void dump(){
-	//	import std.stdio;
-	//	writeln(CoalitionMember[1..npp1 + 2]);
-	//}
-
-	int ka;
-	ncex = 0;
-	for (ka = 1; ka <= npp1; ka ++) {
-		CoalitionMember[ka] = false;
-	}
-	do {
-		ncex++;
-		//dump();
-		allcoal();
-		countpivots();
-	} while (!(CoalitionMember[npp1]));
-}
-
-@nogc nothrow @safe void randcomp() {
-	// FIXME
-	assert(0, "Monte Carlo not yet impleented.");
-}
-
-@nogc nothrow @safe void allcoal() {
-	//(* this increments the mem array to get the next coalition.
-	//Cycles through all coalitions by treating ' mem' as though it were
-	//a sequence of binary numbers 1 to 2 ^np -- "allcoal " in effect does
-	//a binary add of "i" to "mem" *)
-	int bitNum = 1;
-	CoalitionMember[bitNum] = !(CoalitionMember[bitNum]);
-	while( !(CoalitionMember[bitNum]) ) {
-		bitNum ++;
-		CoalitionMember[bitNum] = !(CoalitionMember[bitNum]);
-	}
-}
-
+/++
+For the current configuation of CoalitionMember, count all the pivotal
+votes in NumPivots[]..
++/
 @nogc nothrow @safe void countpivots() {
 	//var totvot , ka:integer;
 	//begin
@@ -427,30 +528,30 @@ void exhaust()  @nogc nothrow @safe
 	//end;
 
 	/// Total votes th the current coalition
-	int totalVote ;
+	int coalitionVotes ;
 
 	int ka ;
-	totalVote = 0;
+	coalitionVotes = 0;
 	for(ka = 1; ka <= np; ka++ )  {
 		if (CoalitionMember[ka]) {
-			totalVote = totalVote + Votes[ka];
+			coalitionVotes = coalitionVotes + Votes[ka];
 		}
 	}
-	if(totalVote >= mwcvote) {
+	if(coalitionVotes >= mwcvote) {
 		for(ka = 1; ka <= np; ka ++) {
 			if(CoalitionMember[ka]) {
-				if((totalVote - Votes[ka]) < mwcvote) {
+				if((coalitionVotes - Votes[ka]) < mwcvote) {
 					NumPivots[ka]++;
 				} else {
 					/+ 
 					We skip to the next coalition when the number of
 					party votes gets small enough that changing
-					their votes soesn't matter.  Since sorted
-					descending, all the later ones are smaller, so
-					are in the same position.  Done like this
-					probably because Pascal has neither return or break.
+					their votes doesn't matter.  Since sorted
+					descending, all the later ones are equal in
+					size or smaller, so are in the same position.
+					Done like this probably because Pascal has
+					none of  return, continue,  or break.
 					+/
-					// test, if not skipping gives the same vales
 					// ka = np;
 					return;
 				}
@@ -459,7 +560,87 @@ void exhaust()  @nogc nothrow @safe
 	}
 }
 
+/**
+this increments the CoalitionMember array to get the next coalition.
+Cycles through all coalitions by treating CoalitionMember as though
+it were a sequence of binary numbers [1, 2^np] "allcoal" in effect
+does a binary add of "1" to "CoalitionMember".
+*/
+@nogc nothrow @safe void allcoal() {
+	int bitNum = 1;
+	CoalitionMember[bitNum] = !(CoalitionMember[bitNum]);
+	while( !(CoalitionMember[bitNum]) ) {
+		bitNum ++;
+		CoalitionMember[bitNum] = !(CoalitionMember[bitNum]);
+	}
+}
 
+/**
+Taken from the original Pascal program, this is essentially
+ counting up with the binary number represented by the bit
+ array CoalitionMember. You could probably do it with an array
+ of unsigned, at some complexity cost. CoalitionMember[np+1] is
+ the "carry" bit and it being set is the sign that you have
+ reached the end.
+*/
+void exhaust() @nogc nothrow @safe
+{
+
+/*	void dump(){
+		import std.stdio;
+		writeln(CoalitionMember[1..npp1 + 2]);
+	}
+*/
+	int ka;
+	ncex = 0;
+
+	// decl init should have sone this.
+	/*for (ka = 1; ka <= npp1; ka ++) {
+		CoalitionMember[ka] = false;
+	}*/
+	do {
+		ncex++;
+		//dump();
+		allcoal();
+		countpivots();
+	} while (!(CoalitionMember[npp1]));
+}
+
+
+/**
+Set CoalitionMember to a randomly generated coalition.
+*/
+void randcoal() @safe @nogc nothrow {
+	size_t ka;
+	PrngOutputType pMembership = randomGen();
+	for(ka = 1; ka <= np; ka ++){
+		CoalitionMember[ka] = randomGen() < pMembership ;
+	}
+}
+
+
+/**
+nex times, pick a random coalition ads count the pivots.
+*/
+void randcomp() @nogc nothrow @safe  {
+	int ka;
+
+	// Validate nex here , should be set from switches
+	assert(nex > 0, "Number of experiments (--nex) should be > 0.");
+	for (ka = 1; ka <= nex; ka ++){
+		randcoal();
+		countpivots();
+		ncex++;
+		// FIXME this is in original code, should it be outside the loop?
+		// ncex = nex;
+	}
+}
+
+
+
+/**
+After the main processing, sum the core results before printing.
+*/
 @nogc nothrow @safe int banzcomp() {
 	int ka;
 	totpivots = 0;
@@ -467,6 +648,7 @@ void exhaust()  @nogc nothrow @safe
 		totpivots = totpivots + NumPivots[ka];
 	}
 	if (totpivots == 0) {
+		// Avoids an upcoming divide by zero
 		return EXIT_NOPIVOTS;
 	}
 	for (ka = 1; ka <= np; ka ++) {
@@ -476,10 +658,11 @@ void exhaust()  @nogc nothrow @safe
 }
 
 
-// The output is a tab delimited file, with eoln being \n
-// colums are party name, voltes, banzhaf index
-// Not the approach from the source as we are trying to make it Unix tools friendly
-//
+/**
+ The output is a tab delimited file, with eoln being \n. Columns are
+ party name, voltes, banzhaf index, etc. Not the approach from the
+ source as we are trying to make it Unix tools friendly.
+*/
 @trusted void banzprint() {
 	import std.stdio;
 	import std.conv;
@@ -493,7 +676,9 @@ void exhaust()  @nogc nothrow @safe
 		}
 		static if (StaticVerbosity >= 1) {
 			writeln("mwcvote\t",mwcvote);
+			writeln("totalVotes\t",totalVotes);
 			writeln("nex\t",nex);
+			writeln("ncex\t",ncex);
 			writeln("totpivots\t",totpivots);
 		}
 		writeln();
@@ -504,18 +689,22 @@ void exhaust()  @nogc nothrow @safe
 		writeln("NumPivots\tBanzIndex\tBI-VP\tBI/VP");
 	}
 	for (ka = 1; ka <= np; ka ++) {
-		FloatT voteProp = (Votes[ka] / cast(FloatT)nex);
+		FloatT voteProp = (Votes[ka] / cast(FloatT)totalVotes);
 		write(PartyNames[ka], "\t", Votes[ka], "\t", voteProp, "\t");
 		write( NumPivots[ka], "\t", BanzIndex[ka], "\t", (BanzIndex[ka] - voteProp), "\t", (BanzIndex[ka] / voteProp),"\n");
 	}
 }
 
+/// del function to check data tyoes
 @trusted void dumpTechData() {
 	import std.stdio : writeln , stderr ;
 	stderr.writeln("", typeof(CoalitionMember).sizeof);
 }
 
 
+/**
+Main: 
+*/
 @safe int main(string[] args) {
 	//dumpTechData();
 	int err = 0;
@@ -529,7 +718,7 @@ void exhaust()  @nogc nothrow @safe
 		return err;
 	}
 	massage();
-	final switch (shouldProcessExhaustively) {
+	final switch (howToProcess) {
 		case ProcessingType.montecarlo:
 			randcomp();
 			break;

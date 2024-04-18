@@ -1,25 +1,31 @@
 #
-#
-#
+# Banzdemo Makefile
+# John Dougan
 #
 #
 PROGRAMS=banzdemo
 TESTOUTDIR=testoutput
 TESTINDIR=testinput
-#TESTOUTPUT = testoutput/Votes-IT-out1.txt testoutput/Votes-IT-out2.txt testoutput/Votes-IT-out3.tab testoutput/Votes-IT-out4.tab
-TESTOUTPUT=
 
 # will want to change this on a standard D system
 DCC=gdmd
 DOPTS=-g -gs 
 
-all:  $(PROGRAMS) test $(TESTOUTPUT) testltext
-	# echo Default actions, build all the tests.
+all:  $(PROGRAMS)
+	echo Default actions, build the program. make alltests to buid and run the tests.
 
 banzdemo: banzdemo.d 
 	$(DCC) banzdemo.d $(DOPTS)
 
-test: banzdemo $(TESTINDIR)/Votes-IT.banzbyte testltext testoutdir 
+#
+# Testing
+#
+alltests: testIT testltext montecarlotest
+
+#
+# Parsing and output tests
+#
+testIT: banzdemo $(TESTINDIR)/Votes-IT.banzbyte testoutdir 
 	mkdir -p $(TESTOUTDIR)
 	./banzdemo --mwc 334 --header=all < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out1.txt
 	./banzdemo --mwc 334 --header=columns < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out2.txt
@@ -27,20 +33,15 @@ test: banzdemo $(TESTINDIR)/Votes-IT.banzbyte testltext testoutdir
 	./banzdemo --mwc 334 --header=none --informat=tab < $(TESTOUTDIR)/Votes-IT-out3.tab  > $(TESTOUTDIR)/Votes-IT-out4.tab
 	diff  $(TESTOUTDIR)/Votes-IT-out3.tab  $(TESTOUTDIR)/Votes-IT-out4.tab
 
-testoutdir:
-	mkdir -p $(TESTOUTDIR)
-
-clean:
-	rm -rf *.o banzdemo $(TESTOUTDIR)/*
-
-allclean: clean
-	rm -rf $(TESTOUTDIR)
-
 #
-# known correct examples from textbook
+# ltext : known correct exhaustive examples from textbook
 #
+LTEXTTESTOUTPUT=$(TESTOUTDIR)/Banz-ltext4-mwc8.tab $(TESTOUTDIR)/Banz-ltext5-mwc16.tab $(TESTOUTDIR)/Banz-ltext6-mwc65.tab $(TESTOUTDIR)/Banz-ltext7-mwc58.tab
 
-testltext: testoutdir $(TESTOUTDIR)/Banz-ltext4-mwc8.tab $(TESTOUTDIR)/Banz-ltext5-mwc16.tab $(TESTOUTDIR)/Banz-ltext6-mwc65.tab $(TESTOUTDIR)/Banz-ltext7-mwc58.tab
+regenerateLtextTestTargets: testoutdir $(LTEXTTESTOUTPUT)
+	cp $(LTEXTTESTOUTPUT) $(TESTINDIR)/
+
+testltext: testoutdir $(LTEXTTESTOUTPUT)
 	diff $(TESTOUTDIR)/Banz-ltext4-mwc8.tab  $(TESTINDIR)/Banz-ltext4-mwc8.tab
 	diff $(TESTOUTDIR)/Banz-ltext5-mwc16.tab $(TESTINDIR)/Banz-ltext5-mwc16.tab
 	diff $(TESTOUTDIR)/Banz-ltext6-mwc65.tab $(TESTINDIR)/Banz-ltext6-mwc65.tab
@@ -58,5 +59,24 @@ $(TESTOUTDIR)/Banz-ltext6-mwc65.tab: banzdemo $(TESTINDIR)/Votes-ltext6.banzbyte
 $(TESTOUTDIR)/Banz-ltext7-mwc58.tab: banzdemo $(TESTINDIR)/Votes-ltext7.banzbyte
 	./banzdemo --mwc=58 --header=none < $(TESTINDIR)/Votes-ltext7.banzbyte  > $(TESTOUTDIR)/Banz-ltext7-mwc58.tab
 
+#
+# Monte Carlo Tests
+#
+MCOPTS=--informat=tab --process=montecarlo --nex=1000000 --seed=0 
 
+montecarlotest: banzdemo testoutdir $(TESTINDIR)/US-Electoral-College-2024.tsv 
+	./banzdemo --mwc=270 $(MCOPTS) --header=all < $(TESTINDIR)/US-Electoral-College-2024.tsv  > $(TESTOUTDIR)/Banz-USEC-nex1_000_000.txt
+	./banzdemo --mwc=270 $(MCOPTS) --nex=10000000 --header=all < $(TESTINDIR)/US-Electoral-College-2024.tsv  > $(TESTOUTDIR)/Banz-USEC-nex10_000_000.txt
 
+#
+# utility
+#
+
+testoutdir:
+	mkdir -p $(TESTOUTDIR)
+
+clean:
+	rm -rf *.o banzdemo $(TESTOUTDIR)/*
+
+allclean: clean
+	rm -rf $(TESTOUTDIR)

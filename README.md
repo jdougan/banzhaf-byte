@@ -19,19 +19,29 @@ input file formats: the original(bytemag), tab delimited (tab), ~~and
 CSV(csv)~~. Options are specified with command line switches and not
 conversationally. No printing, people don't print much anymore and
 that is what lpr(1) is for. I'm also using the D double precision
-(IEEE 754) floats, as opposed to the tiny non-standard Apple floats.
+(IEEE 754) floats, as opposed to the tiny precision non-standard
+Apple 2 floats.
 
 
 Options
 -------
-`banzdemo ---process=(all|montecarlo) --mwc=NUM --informat=(bytemag|tab|csv) --header=(none|columns|all) `
+`banzdemo ---process=(all|montecarlo) --mwc=NUM --informat=(bytemag|tab|csv) --header=(none|columns|all)
+	 --seed=NUM  --nex=NUM < infile > outfile`
 
-`--process` specifies if processing is be be exhaustive (`all`) or monte carlo random sampling (`montecarlo`). Defaults to exhaustive.
+`--process` specifies if processing is be be exhaustive (`all`) or
+monte carlo random sampling (`montecarlo`). Defaults to exhaustive.
+More than 25 or so parties and exhaustive will take a long time.
 
 `--mwc` is minimum winning coalition and the the smallest number of
 votes necessary to win a vote in the data set. Specified externally
 so you can easily rerun for super-majorities without changing the
 data set.
+
+`--seed` seeds the PRNG for reproducible runs.  It is ignored if
+processing exhaustively.  If not present, it defaults to Phobos'
+`std.random.unpredictableSeed()`.  `--nex` specifies the number of
+experiments (Monte Carlo runs).  It is also ignored if processing
+exhaustively.  If unspecified then it defaults to 1,048,576 runs.
 
 Input format `--informat` is one of 3 values: `bytemag`, `tab`, or
 `csv`. Descriptions are below.
@@ -40,14 +50,15 @@ The output format is a tab delimited table formatted so it can be used
 as input again. The first 2 columns are PartyName and Votes, and the
 rest are Banzhaf calculation data. The `--header` switch specifies
 how much header is output: nothing at all, just column labels, or
-both the ID block and column labels. If no headers, then the file is
-suitable to be used as tab delimited input.
+both the ID block and column labels (default). If no headers, then
+the file is suitable to be used as tab delimited input.
 
 Bytemag file format
 --------------------
 The bytemag format consists of a block of lines of identifying
 information, followed by an empty line separatior. If there are zero
-line of id, then the file still must contain the empty line separator.
+line of id, then the file still must contain the empty line
+separator.
 
 This is followed by a block of lines that each have 2 fields separated
 by a colon: party name label, and the number of votes they command
@@ -127,12 +138,9 @@ Current Issues
 - Was built using the gcc dlang compiler, gdc. There may be some gdc-isms I am unaware of.
 - Similarly, the Makefile is dependent on gdmd to invoke compilation.
 	- Should make it easy to use dmd on systems with that.
-  	- The original used the standard Apple floats, which were very low precision and slow and prone to rounding errors.
 - CSV input not yet done.
-	- Maybe drop CSV input and rely on other tools (awk) to convert to tab delimited?
+	- Maybe drop CSV input and rely on other tools (awk?) to convert to tab delimited?
 	- Or not. It gives me a chance to mess with std.csv.
-- Montecarlo not done yet.
-	- It will need a `--seed`switch to seed the random numbers.
 - Proportional mwc calc needs revision and command line switches.
 - Error handling for getopt.
 	- Currently it'll crash if you miss-specify options.
@@ -142,7 +150,7 @@ Current Issues
 - The Pascal source file has many, many OCR errors.
 	- Find an Apple Pascal compatible compiler and make it work.
 - Put the data in the global space instead of the thread local space and benchmark?
-- Float output formatting needs to be more fully specified, or there is a decent chance the tests will incorrectly fail.
+- Float output formatting needs to be more fully specified, or there is a decent chance some tests will incorrectly fail.
 - Need doc on updating test cases if they fail due to reformatting.
 
 - DONE Currently depends on a private library for a lame sort algo. Should remove dependency.
@@ -154,6 +162,14 @@ Current Issues
   	- It also doesn't match other sources.
   	- Try different values for mwc: 333,334,??? and see if it matches other outputs better?
   	- Go over processing code again, maybe I missed something.
+- DONE Montecarlo not done yet.
+	- DONE It will need a `--seed=`switch to seed the random numbers.
+	- DONE Also needs an `--nex=` swirch to specify number of experiments
+	- DONE See how Phobos handles pseudo-random numbers.
+		- answer is "with @gc"!
+	- DONE My PRNG needs an actual random seeding method. Currently just sets the seed to 0 if not specified.
+- The original used the standard Apple 2 ROM floats, which were very low precision and slow and prone to rounding errors.
+
 
 Compiler Version
 -----------------
