@@ -10,7 +10,9 @@ the user.  It would take input from either a file specified or via a
 simple data entry UI at the keyboard, and output was in one format
 only, with an option to send to the printer.  There was also a lot of
 status output. Internally it was limited to a maximum of 10 ID block
-lines and 200 parties.
+lines and 200 parties. The original used the standard Apple 2 ROM
+floats, which were very low precision and slow and prone to rounding
+errors.
 
 Since I am retargeting to a POSIX system, the input now always comes
 from stdin, the output goes to stdout, and any status output goes to
@@ -22,36 +24,50 @@ that is what lpr(1) is for. I'm also using the D double precision
 (IEEE 754) floats, as opposed to the tiny precision non-standard
 Apple 2 floats.
 
+The portions of the banhaf-byte repo that are my (John Dougan) work
+are licensed under the GPL 2.0. Everything else is under their
+respective copyrights, particularly the original code by Philip A.
+Schrodt. 
+
 
 Options
 -------
-`banzdemo ---process=(all|montecarlo) --mwc=NUM --informat=(bytemag|tab|csv) --header=(none|columns|all)
-	 --seed=NUM  --nex=NUM < infile > outfile`
+```
+banzdemo --mwc=NUM 
+	--process=(all|montecarlo)
+	--informat=(bytemag|tab|csv) --header=(none|columns|all) 
+	--seed=NUM --nex=NUM   < infile > outfile
+```
 
 `--process` specifies if processing is be be exhaustive (`all`) or
-monte carlo random sampling (`montecarlo`). Defaults to exhaustive.
-More than 25 or so parties and exhaustive will take a long time.
+monte carlo random sampling (`montecarlo`). Defaults to `all`.
+Depending on the computer performance, `--process=all` with more than
+29 or so parties can take more than a few minutes.
 
 `--mwc` is minimum winning coalition and the the smallest number of
 votes necessary to win a vote in the data set. Specified externally
 so you can easily rerun for super-majorities without changing the
-data set.
+data set. There is no default, if not set `banzdemo` will crash on a
+zero test assertion.
 
 `--seed` seeds the PRNG for reproducible runs.  It is ignored if
 processing exhaustively.  If not present, it defaults to Phobos'
-`std.random.unpredictableSeed()`.  `--nex` specifies the number of
-experiments (Monte Carlo runs).  It is also ignored if processing
-exhaustively.  If unspecified then it defaults to 1,048,576 runs.
+`std.random.unpredictableSeed()`.  `--nex` specifies how many Monte
+Carlo runs (Number of EXperiments).  It is also ignored if processing
+exhaustively.  If unspecified then it defaults to 1,048,576
+(2^20) runs.
 
-Input format `--informat` is one of 3 values: `bytemag`, `tab`, or
-`csv`. Descriptions are below.
+Input format `--informat` is one of 3 values: `bytemag`
+(default), `tab`, or `csv`. Descriptions are below.
 
-The output format is a tab delimited table formatted so it can be used
-as input again. The first 2 columns are PartyName and Votes, and the
-rest are Banzhaf calculation data. The `--header` switch specifies
-how much header is output: nothing at all, just column labels, or
-both the ID block and column labels (default). If no headers, then
-the file is suitable to be used as tab delimited input.
+The output format is a tab delimited table formatted so it can
+potentially be used as input again, once any optional headers are
+romoved.  The first 2 columns are PartyName and Votes, and the rest
+are Banzhaf calculation data matching the original Pascal program
+output. The `--header` switch specifies how much header is output:
+nothing at all (`none`), just column labels (`columns`), or both the ID block and column
+labels (`all`)(default). If no headers, then the output file is suitable to be used
+as tab delimited input.
 
 Bytemag file format
 --------------------
@@ -141,6 +157,9 @@ Current Issues
 - CSV input not yet done.
 	- Maybe drop CSV input and rely on other tools (awk?) to convert to tab delimited?
 	- Or not. It gives me a chance to mess with std.csv.
+- Might want to make input and output switches more orthogonal
+	- Separeate header output into labels and id block switches
+	- Same for input?
 - Proportional mwc calc needs revision and command line switches.
 - Error handling for getopt.
 	- Currently it'll crash if you miss-specify options.
@@ -153,6 +172,8 @@ Current Issues
 - Float output formatting needs to be more fully specified, or there is a decent chance some tests will incorrectly fail.
 - Need doc on updating test cases if they fail due to reformatting.
 
+Done
+----------
 - DONE Currently depends on a private library for a lame sort algo. Should remove dependency.
 	- ceres.sorting needs reworking anyways
 	- Went back to the weird sort from the original. Not efficient, but at most only a few thousand Parties in any real worls scanario.
@@ -168,7 +189,6 @@ Current Issues
 	- DONE See how Phobos handles pseudo-random numbers.
 		- answer is "with @gc"!
 	- DONE My PRNG needs an actual random seeding method. Currently just sets the seed to 0 if not specified.
-- The original used the standard Apple 2 ROM floats, which were very low precision and slow and prone to rounding errors.
 
 
 Compiler Version
