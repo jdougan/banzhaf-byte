@@ -58,7 +58,9 @@ file. It may also write to stderr, but so far it doesn't.
 	- Sum of all the entries in Votes[].
 	- Should be > 0.
 - monteCarloGen
-	- MT19337 32 bit PRNG
+	- MT19337 32 bit PRNG\
+- unanimityFlag
+	- Indicates tha mwcvote == total votes, which is handled in a fast shortcut.
 
 ## Parallel Arrays
 - PartyNames
@@ -87,25 +89,29 @@ file. It may also write to stderr, but so far it doesn't.
 - massage()
 	- Not in the original.
 	- Calculates values needed by the processing that need only be done once.
-	- Does validation where possible,.
+	- Does validation and consistency checks where possible.
 	- REMOVED Initializes `NumPivots` slots to 0.
 		- Moved to declaration.
 	- Calculates `totalVotes`, `npp1`
-	- If using a proportion to calculate `mwcvote`, compute it here.
+	- If using a proportion to calculate `mwcvote`, compute it here. (turned off)
+	- Sets unaminity flag as appropriate.
 	- In-place sorts the data by `Votes` descending, this enables a processing shortcut.
 		- The sort is very lame. Claims to be a bubble sort, but it isn't. Does appear to have the same time complexity.
 		- It is suprisingly annoying to get Phobos to do this, so I just copied the original. I expect that for really large datasets the run time is going to be dominated by the main processing loops.
 		- Write or find a better sort later.
-- Either of, based on the `--process=` option.
-	- randcomp()
-		- Monto Carlo testing.
-		- Implemented, still in testing.
-	- exhaust()
-		- Interate through all possible combinations.
-		- looks like it matches original, need to validate output.
+- if unaminityFlag then
+	- unanimousVote()
+- else
+	- Either of, based on the `--process=` option.
+		- randcomp()
+			- Monto Carlo testing.
+		- exhaust()
+			- Interate through all possible combinations.
 - banzcomp()
 	- Late stage processing
-	- Sum the total pivots from NumPivots	- Compute the BanzIndex for each entry.
+	- Sum the total pivots from NumPivots
+	- Validate totalPivots to avoid a divide by zero.
+	- Compute the BanzIndex for each entry.
 
 - banzprint()
 	- Output the results to stdout.
@@ -165,6 +171,6 @@ MersenneTwisterGeneratorU32` to keep it isolated, did some minor
 renaming, and declared all of the functions to be `@nogc
 nothrow @safe`.  At the moment, the randomize seeding is done by
 `std.random.unpredictableSeed()` since outside the loop, GC isn't as
-relevant.
+relevant (and a later version of Phobos fixes that).
 
 

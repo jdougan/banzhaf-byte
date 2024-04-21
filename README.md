@@ -65,9 +65,9 @@ potentially be used as input again, once any optional headers are
 romoved.  The first 2 columns are PartyName and Votes, and the rest
 are Banzhaf calculation data matching the original Pascal program
 output. The `--header` switch specifies how much header is output:
-nothing at all (`none`), just column labels (`columns`), or both the ID block and column
-labels (`all`)(default). If no headers, then the output file is suitable to be used
-as tab delimited input.
+nothing at all (`none`), just column labels (`columns`), or both the
+ID block and column labels (`all`)(default). If no headers, then the
+output file is suitable to be used as tab delimited input.
 
 Bytemag file format
 --------------------
@@ -151,18 +151,17 @@ Not yet specified, should be a lot like tab delimited.
 
 Current Issues
 ---------------
-- Was built using the gcc dlang compiler, gdc. There may be some gdc-isms I am unaware of.
+- Was built using the gcc dlang compiler, gdc 2.079. There may be some gdc-isms I am unaware of.
 - Similarly, the Makefile is dependent on gdmd to invoke compilation.
 	- Should make it easy to use dmd on systems with that.
 - CSV input not yet done.
 	- Maybe drop CSV input and rely on other tools (awk?) to convert to tab delimited?
 	- Or not. It gives me a chance to mess with std.csv.
 - Might want to make input and output switches more orthogonal
-	- Separeate header output into labels and id block switches
+	- Separeate header output into labels and ID block switches
 	- Same for input?
 - Proportional mwc calc needs revision and command line switches.
-- Error handling for getopt.
-	- Currently it'll crash if you miss-specify options.
+	- Turned off for now, needs respecifying.
 - An option to skip any column headers in the csv or tab input would be useful.
 	- Possibly a `--inskip=NUMLINES`
 - Look for some way to do D I/O without the GC or exceptions.
@@ -171,6 +170,9 @@ Current Issues
 - Put the data in the global space instead of the thread local space and benchmark?
 - Float output formatting needs to be more fully specified, or there is a decent chance some tests will incorrectly fail.
 - Need doc on updating test cases if they fail due to reformatting.
+- Test scripts need rewriting
+	- add failure cases
+	- move out of Makefile?
 
 Done
 ----------
@@ -189,6 +191,8 @@ Done
 	- DONE See how Phobos handles pseudo-random numbers.
 		- answer is "with @gc"!
 	- DONE My PRNG needs an actual random seeding method. Currently just sets the seed to 0 if not specified.
+- DONE Error handling for getopt.
+	- DONE Currently it'll crash if you miss-specify options.
 
 
 Compiler Version

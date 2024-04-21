@@ -38,13 +38,13 @@ project for D.
 	- is there another tool that can handle the conversion?
 		- goAwk
 		- true awk
+		- recent gawk
 - Proportional mwc calc needs revision and command line switches.
+	- Turned off for now
 	- --mwc=majority 1/2 + on ties
 	- --mwc=NUM
 	- --mec=2/3  supermajority.  is it > or >=??
 	- --mwc=1/1  unaminity we can shortfut the calc.
-- error handling for getopt
-	- If we just give up and jusr make the parser `@safe` it should be easy.
 - Array of bool is unpacked in bytes.
 	- https://www.cppstories.com/2017/04/packing-bools/
 	- Maybe pack it.
@@ -53,16 +53,6 @@ project for D.
 	- D has a BitArray, try that first.
 - I badly want an assert that lets me specify a POSIX exit code on failure.
 	- `exitassert(totalVotes < 1, "TotalVotes < 1", EXIT_BADDATA);`
-- Issue warning if monte carlo and mwc == totalVotes (unanimity)
-	- it won't bet it right without a lucky hit on the single 
-	- all will work, but could take a while
-	- there is only one coalition that will work, the one that everyone is in. if anyone defects, the vote sill fail. So, everyone has the same NumPivots and totalPivots, which means the same BI.
-	- Add a a special case?
-		- set up the Coalitions to all true.
-		- countpivots
-		- the continue to banzcomp as usual.
-- if mwc = 0, then error
-	- right now it fails on an assert, make it work a bit better?
 - `./banzdemo --mwc=21  <  testinput/Votes-ltext5.banzbyte`    
 
 ## closed-ish
@@ -70,6 +60,19 @@ project for D.
 - DONE do easy options: headerX, mwcX, ???
 - DONE Montecarlo 
 	- WTF is Phobos doing with std.random.uniform() being @gc!?
+- DONE error handling for getopt
+	- If we just give up and jusr make the parser `@safe` it should be easy.
+- DONE Issue warning if monte carlo and mwc == totalVotes (unanimity)?
+	- it won't get it right without a lucky hit on the single 
+	- all will work, but could take a while
+	- there is only one coalition that will work, the one that everyone is in. if anyone defects, the vote sill fail. So, everyone has the same NumPivots and totalPivots, which means the same BI.
+	- DONE Add a a special case?
+		- set up the Coalitions to all true.
+		- countpivots
+		- the continue to banzcomp as usual.
+- DONE if mwc = 0, then error
+	- right now it fails on an assert, make it work a bit better?
+	- Now exits with a message to stderr, and an appropriate status code.
 
 ## compiler
 
