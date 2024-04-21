@@ -50,8 +50,10 @@ past the valid range. In theory, it might be faser to pack it into
 bits instead of the byte default to reduce cache pressure..
 +/
 bool[MAXVOTES+1] CoalitionMember = false;
-FloatT[MAXVOTES] BanzIndex = 0.0;
 
+// Should initialize to NaN
+FloatT[MAXVOTES] BanzIndex;
+ 
 /// number of coalitions evaluated, running number of experiments
 /// Used for status output, when I readd it.
 int ncex;
