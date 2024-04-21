@@ -16,6 +16,8 @@ enum EXIT_BADFORMATHEADER = 1;
 enum EXIT_BADFORMATVOTES = 2;
 enum EXIT_UNKNOWNFORMAT = 3;
 enum EXIT_NOPIVOTS = 4;
+enum EXIT_BADARGS = 5;
+enum EXIT_INCONSISTENTDATA = 6;
 
 
 // The source uses pascal arrays counting from 1, I have lots of
@@ -72,6 +74,10 @@ int mwcvote ;
 /// total votes = sum(Votes)
 int totalVotes;
 
+/// iindicates we are in the unanimity special case
+/// where we can shortcut the calculations
+bool unanimityFlag = false;
+
 /// Number of Experiments: number of Monte Carlo runs..
 /// 2 ** 20
 int nex =1_048_576;
@@ -79,6 +85,9 @@ int nex =1_048_576;
 // Assorted  counters, might be removeable.
 // int kz, ka, kb;
 
+
+/// Error message to accompany error returns.
+string errString;
 
 // ============================================================
 // flags to be set from command line
@@ -106,7 +115,7 @@ uint mwcProportionDenominator = 0;
 
 enum ProcessingType {
 	montecarlo,
-	all
+	all,
 }
 ProcessingType howToProcess ;
 
@@ -238,9 +247,8 @@ MersenneTwisterGeneratorU32 monteCarloGen;
 //  Procedures
 // 
 
-@safe int setFromCommandFlags(ref string[] args){
+int setFromCommandFlags(ref string[] args) @safe {
 	import std.getopt;
-	import std.stdio;
 	// banzdemo --process=all --mwc=51  --informat=bytemag --header=all < votes.txt > results.txt
 	// --process=montecarlo --process=all
 	// --mwc=567
@@ -252,7 +260,7 @@ MersenneTwisterGeneratorU32 monteCarloGen;
 	// --seed=653567864543
 	// --mwcfrac=1/2 
 
-	mwcvote = 0;
+	mwcvote = -1;
 	// nex = 1_048_576;
 	shouldOutputHeader = OutputHeaderGenerated.all;
 	howToProcess = ProcessingType.all;
@@ -261,17 +269,26 @@ MersenneTwisterGeneratorU32 monteCarloGen;
 	// should default to 1/2
 	mwcProportionNumerator = 0;
 	mwcProportionDenominator = 0;
-	// mwcvote = 51; 
 
-	auto aparse = getopt(args,
-		"mwc" , &mwcvote,
+	GetoptResult aparse;
+	try {
+		aparse = getopt(args,
+			config.required,
+			"mwc" , &mwcvote,
+			config.passThrough,
+			"process", &howToProcess,
+		);
+	} catch (GetOptException ex) {
+		errString = "--mwc required";
+		return EXIT_BADARGS;
+	}
+	aparse = getopt(args,
+		config.passThrough,
 		"header", &shouldOutputHeader,
 		"informat", &inputFormatExpected,
-		"process", &howToProcess,
 		"nex", &nex,
 		"seed", &seed,
 		);
-
 	return EXIT_NOERROR;
 }
 
@@ -284,7 +301,6 @@ void init() @safe {
 	final switch (howToProcess) {
 		case ProcessingType.all:
 			break;
-
 		case ProcessingType.montecarlo:
 			if (seed == 0) {
 				// FIXME need to find non Phobos seeding source 
@@ -325,12 +341,14 @@ format is either Exit Code, or  crash with an assertion failure.
 			size_t len = rawLine.length;
 			if (len == 0) {
 				// early end of file, incorrect file
+				errString = "Early end of file in header. Incorrect file?";
 				return (EXIT_BADFORMATHEADER);
 			} else if (len == 1) {
 				// end of the header
 				scanningHeader = false;
 			} else {
 				if (nid == MAXIDLINES) {
+					errString = "Header too large.";
 					return (EXIT_BADFORMATHEADER);
 				}
 				IdHeader[nid] = rawLine[0..$-1];
@@ -354,6 +372,7 @@ format is either Exit Code, or  crash with an assertion failure.
 				size_t sepIndex = rawLine.indexOf(':');
 				if (sepIndex == -1) {
 					// No seperator, line oif ill formed.
+					errString = "Separator (:) missing in votes.";
 					return EXIT_BADFORMATVOTES;
 				} else {
 					string partyName = rawLine[0..sepIndex];
@@ -391,6 +410,7 @@ format is either Exit Code, or  crash with an assertion failure.
 				currIndex = currIndex + 1;
 				string[] fields = split(rawLine,splitPattern);
 				if(fields.length < 2) {
+					errString = "Fewer than 2 fields in record in tab delimited file.";
 					return EXIT_BADFORMATVOTES;
 				}
 				PartyNames[currIndex] = strip(fields[0]);
@@ -481,22 +501,32 @@ complexity.
 
 /++
 Calculates values from the read data that need only be done
-once.
+once. Data consistency checking should go here.
 +/
-void massage() @nogc nothrow @safe {
+int massage() @nogc nothrow @safe {
 	// No longer needed, initialization are now on the declaration.
 	// for(int ka = 1; ka < MAXVOTES; ka ++ ) { NumPivots[ka] = 0; }
 	totalVotes = 0;
 	for(int ka = 1; ka <= np; ka++){
 		totalVotes = totalVotes + Votes[ka];
 	}
-	assert(totalVotes > 0, "massage(): totalVotes not > 0, probably bad data.");
+
+	// FIXME shoud we check the individual viotes for z/positivity
+	// here or in readdata?
+
+	if(totalVotes <= 0) {
+		errString = "totalVotes <= 0, probably bad data.";
+		return EXIT_INCONSISTENTDATA;
+	}
+
 	npp1 = np + 1;
-	if (mwcvote == 0) {
-		// if it is zero, then it needs to be calculated from
-		// proportions.
-		// in not zero, we assume it is good.
+	if (false) {
+	//if (mwcvote < 1) {
+		// if it is less than one, it is impossible, then it needs to be
+		// calculated from proportions. in 1 or more, we assume it is good.
 		// Probably should be checked to ensure that it is in [1,np]
+		// for now, just crash with a meaningful error message.
+		assert(0, "mwc proportion calculation unimplemented.");
 		assert(mwcProportionNumerator > 0);
 		assert(mwcProportionDenominator > 0);
 		uint votesToPass = (totalVotes * mwcProportionNumerator) / mwcProportionDenominator;
@@ -504,7 +534,21 @@ void massage() @nogc nothrow @safe {
 		// FIXME probably not right
 		mwcvote = votesToPass + 1;
 	}
+
+	if(mwcvote < 0){
+		errString = "mwc votes is less than 1.";
+		return EXIT_INCONSISTENTDATA;
+	}
+	if(mwcvote > totalVotes){
+		errString = "mwc votes > total votes.";
+		return EXIT_INCONSISTENTDATA;
+	}
+	if(mwcvote == totalVotes) {
+		// special case, we can shortcut the calculation and save a lot of time.
+		unanimityFlag = true;
+	}
 	sortdata_orig();
+	return EXIT_NOERROR;
 }
 
 /++
@@ -585,7 +629,6 @@ Taken from the original Pascal program, this is essentially
 */
 void exhaust() @nogc nothrow @safe
 {
-
 /*	void dump(){
 		import std.stdio;
 		writeln(CoalitionMember[1..npp1 + 2]);
@@ -631,11 +674,24 @@ void randcomp() @nogc nothrow @safe  {
 		randcoal();
 		countpivots();
 		ncex++;
-		// FIXME this is in original code, should it be outside the loop?
+		// FIXME this is in original code, should it be outside the
+		// loop?
 		// ncex = nex;
 	}
 }
 
+
+/++
+Handle the special case where in the case of unanimity is required,
+(mwcvotes == totalVotes) there is only one case that will generate
+pivots. Set that up, count the pivots and we are done.
++/
+void unanimousVote() @nogc nothrow @safe {
+	CoalitionMember = true;
+	CoalitionMember[npp1] = false;
+	countpivots();
+	ncex++;
+}
 
 
 /**
@@ -649,6 +705,7 @@ After the main processing, sum the core results before printing.
 	}
 	if (totpivots == 0) {
 		// Avoids an upcoming divide by zero
+		errString = "Total pivot count is 0, cannot proceed.";
 		return EXIT_NOPIVOTS;
 	}
 	for (ka = 1; ka <= np; ka ++) {
@@ -701,6 +758,13 @@ After the main processing, sum the core results before printing.
 	stderr.writeln("", typeof(CoalitionMember).sizeof);
 }
 
+/// del function to check data tyoes
+@trusted void dumpError() {
+	import std.stdio : writeln , stderr ;
+	stderr.writeln("Error: ", errString);
+}
+
+
 
 /**
 Main: 
@@ -710,29 +774,41 @@ Main:
 	int err = 0;
 	err = setFromCommandFlags(args);
 	if (err != EXIT_NOERROR) {
+		dumpError();
 		return err;
 	}
+
 	init();
 	err = readdata();
 	if (err != EXIT_NOERROR) {
+		dumpError();
 		return err;
 	}
-	massage();
-	final switch (howToProcess) {
-		case ProcessingType.montecarlo:
-			randcomp();
-			break;
-		case ProcessingType.all: 
-			exhaust();
-			break;
+
+	err = massage();
+	if (err != EXIT_NOERROR) {
+		dumpError();
+		return err;
+	}
+
+	if(unanimityFlag) {
+		unanimousVote();
+	} else {
+		final switch (howToProcess) {
+			case ProcessingType.montecarlo:
+				randcomp();
+				break;
+			case ProcessingType.all: 
+				exhaust();
+				break;
+		}
 	}
 	err = banzcomp();
 	if (err != EXIT_NOERROR) {
-		if (err == EXIT_NOPIVOTS) {
-			// writeln("NOPIVOTS: No pivots found in data.");
-		}
+		dumpError();
 		return err;
 	}
+
 	banzprint();
 	return EXIT_NOERROR;
 }

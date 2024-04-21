@@ -27,10 +27,10 @@ alltests: testIT testltext montecarlotest
 #
 testIT: banzdemo $(TESTINDIR)/Votes-IT.banzbyte testoutdir 
 	mkdir -p $(TESTOUTDIR)
-	./banzdemo --mwc 334 --header=all < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out1.txt
-	./banzdemo --mwc 334 --header=columns < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out2.txt
-	./banzdemo --mwc 334 --header=none < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out3.tab
-	./banzdemo --mwc 334 --header=none --informat=tab < $(TESTOUTDIR)/Votes-IT-out3.tab  > $(TESTOUTDIR)/Votes-IT-out4.tab
+	./banzdemo --mwc=334 --header=all < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out1.txt
+	./banzdemo --mwc=334 --header=columns < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out2.txt
+	./banzdemo --mwc=334 --header=none < $(TESTINDIR)/Votes-IT.banzbyte  > $(TESTOUTDIR)/Votes-IT-out3.tab
+	./banzdemo --mwc=334 --header=none --informat=tab < $(TESTOUTDIR)/Votes-IT-out3.tab  > $(TESTOUTDIR)/Votes-IT-out4.tab
 	diff  $(TESTOUTDIR)/Votes-IT-out3.tab  $(TESTOUTDIR)/Votes-IT-out4.tab
 
 #
@@ -67,6 +67,7 @@ MCOPTS=--informat=tab --process=montecarlo --nex=1000000 --seed=0
 montecarlotest: banzdemo testoutdir $(TESTINDIR)/US-Electoral-College-2024.tsv 
 	./banzdemo --mwc=270 $(MCOPTS) --header=all < $(TESTINDIR)/US-Electoral-College-2024.tsv  > $(TESTOUTDIR)/Banz-USEC-nex1_000_000.txt
 	./banzdemo --mwc=270 $(MCOPTS) --nex=10000000 --header=all < $(TESTINDIR)/US-Electoral-College-2024.tsv  > $(TESTOUTDIR)/Banz-USEC-nex10_000_000.txt
+	./banzdemo --mwc=538 $(MCOPTS) --nex=10000000 --header=all < $(TESTINDIR)/US-Electoral-College-2024.tsv  > $(TESTOUTDIR)/Banz-USEC-unanimous.txt
 
 #
 # utility
