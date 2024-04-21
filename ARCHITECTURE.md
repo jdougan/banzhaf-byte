@@ -28,7 +28,8 @@ performance differences. This may be parallelizable.
 If error returns are needed, the function is question will return an
 `int` exit code, where EXIT_NOERROR == 0. If necessary that code will
 be used as the process exit code. The constants are at the top of the
-file. It may also write to stderr, but so far it doesn't. 
+file. It may also write to stderr the message in the errString global
+just before it exits. 
 
 ## Misc Data
 - np
