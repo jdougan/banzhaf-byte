@@ -12,7 +12,7 @@ DCC=gdmd
 DOPTS=-g -gs 
 
 all:  $(PROGRAMS)
-	echo Default actions, build the program. make alltests to buid and run the tests.
+	echo Default actions, build the program. make test to buid and run the tests.
 
 banzdemo: banzdemo.d 
 	$(DCC) banzdemo.d $(DOPTS)
@@ -20,7 +20,7 @@ banzdemo: banzdemo.d
 #
 # Testing
 #
-alltests: testIT testltext montecarlotest
+test: testIT testltext montecarlotest
 
 #
 # Parsing and output tests
@@ -77,7 +77,16 @@ testoutdir:
 	mkdir -p $(TESTOUTDIR)
 
 clean:
-	rm -rf *.o banzdemo $(TESTOUTDIR)/*
+	rm -rf *.o $(PROGRAMS) $(TESTOUTDIR)/*
 
-allclean: clean
+distclean: clean
 	rm -rf $(TESTOUTDIR)
+
+realclean: distclean
+
+allclean: realclean
+
+.PHONY : all test clean distclean realclean allclean testoutdir
+
+% : %.d
+	$(DCC) $< $(DOPTS)
