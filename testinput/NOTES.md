@@ -13,7 +13,7 @@ Votes CA
 
 Votes ltext
 ------------
-- Data taken from the examples in an online libre textbook, *Math in Society* by David Lippman.
+- Data taken from the examples in an online open licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) textbook, *Math in Society* by David Lippman.
 - https://math.libretexts.org/Bookshelves/Applied_Mathematics/Math_in_Society_(Lippman)/03%3A_Weighted_Voting/3.04%3A_Calculating_Power-__Banzhaf_Power_Index
 - The files that start with "Banz-ltest" are known correct output generated from the program from the corresponding "Votes-ltest". 
 	- They should exactly match the corresponding testoutput.
